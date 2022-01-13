@@ -1,6 +1,6 @@
 {
   "name": "cro-development-tool-chrome-extension",
-  "version": "4.2.0",
+  "version": "0.0.1",
   "description": "A chrome extension to use with the CRO development tool",
   "license": "MIT",
   "repository": {
@@ -13,10 +13,16 @@
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md}'"
   },
   "dependencies": {
+    "@emotion/react": "^11.7.1",
+    "@emotion/styled": "^11.6.0",
     "@hot-loader/react-dom": "^17.0.1",
+    "@mui/material": "^5.2.8",
+    "@reduxjs/toolkit": "^1.7.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "react-hot-loader": "^4.13.0"
+    "react-hot-loader": "^4.13.0",
+    "react-redux": "^7.2.6",
+    "socket.io-client": "^4.4.1"
   },
   "devDependencies": {
     "@babel/core": "^7.15.8",

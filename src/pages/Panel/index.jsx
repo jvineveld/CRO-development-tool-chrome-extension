@@ -2,8 +2,12 @@ import React from 'react';
 import { render } from 'react-dom';
 
 import Panel from './Panel';
-import './index.css';
+import './index.scss';
+import { Provider } from 'react-redux'
+import store from './store'
 
-render(<Panel />, window.document.querySelector('#app-container'));
+render(<Provider store={store}>
+	<Panel />
+</Provider>, window.document.querySelector('#app-container'));
 
 if (module.hot) module.hot.accept();
