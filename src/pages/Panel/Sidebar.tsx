@@ -1,5 +1,6 @@
 import { Button, Collapse, List, ListItemButton, ListItemIcon, ListItemText, ListSubheader } from "@mui/material";
 import React, { useState, useEffect } from "react";
+import { transformName } from './helper'
 
 interface CustomerTest {
 	test: string,
@@ -13,8 +14,9 @@ interface ProjectsTreeCustomer {
 
 type ProjectsTree = Array<ProjectsTreeCustomer>
 
-const SideBar: React.FC<{projectsTree:ProjectsTree}>  = ( props ) => {
+const SideBar: React.FC<{projectsTree:ProjectsTree, refreshProjects: any, selectVariation: any}>  = ( props ) => {
 	const [openInTree, setOpenInTree] = useState([])
+	const [didRefresh, setDidRefresh] = useState(false)
 	const projectsTree = props.projectsTree
 
 	function toggleItem(key){
@@ -26,6 +28,16 @@ const SideBar: React.FC<{projectsTree:ProjectsTree}>  = ( props ) => {
 		}
 	}
 
+	// to make sure it is visible the action was made
+	function refreshListFnWrap(){
+		props.refreshProjects()
+		setDidRefresh(true)
+
+		setTimeout(() => {
+			setDidRefresh(false)
+		}, 500)
+	}
+
 	return (
 		<div className="sidebar">
 			<List
@@ -33,30 +45,33 @@ const SideBar: React.FC<{projectsTree:ProjectsTree}>  = ( props ) => {
 			aria-labelledby="nested-list-subheader"
 			dense={true}
 			subheader={
-			  <ListSubheader component="div" id="nested-list-subheader">
-				Customers &amp; Campaigns
+			  <ListSubheader component="div" id="header-refresh-list" onClick={refreshListFnWrap}>
+				<span className="normal">Customers &amp; Campaigns</span>
+				<span className="hovering">
+					{didRefresh ? 'Refreshed list' : 'Refresh list'}
+				</span>
 			  </ListSubheader>
 			}
 		  >
-			{projectsTree.map(customer => {
-				const customerId = customer.customer;
+			{projectsTree.map((customer, customerIndex) => {
+				const customerId = customer.customer + customerIndex;
 				return <div className="customer-block">
-					<ListItemButton className="lvl-customer" onClick={() => toggleItem(customerId)}>
-						<ListItemText primary={customer.customer} />
+					<ListItemButton className="lvl-customer" onClick={() => toggleItem(customerId)} key={customerId}>
+						<ListItemText primary={transformName(customer.customer)} />
 						{openInTree.includes(customerId) ? '-' : '+'}
 					</ListItemButton>
 					<Collapse in={openInTree.includes(customerId)} timeout="auto" unmountOnExit>
 						<List component="div" disablePadding dense={true}>
-							{customer.tests.map(test => {
-								const customerTestId = customer.customer+'/'+test.test;
+							{customer.tests.map((test, testIndex) => {
+								const customerTestId = customer.customer+'/'+test.test+'/'+testIndex;
 								return <>
-									<ListItemButton className="lvl-campaign" onClick={() => toggleItem(customerTestId)}>
-										<ListItemText primary={test.test} />
+									<ListItemButton className="lvl-campaign" onClick={() => toggleItem(customerTestId)} key={customerTestId}>
+										<ListItemText primary={transformName(test.test)} />
 										{openInTree.includes(customerTestId) ? '-' : '+'}
 									</ListItemButton>
 									<Collapse in={openInTree.includes(customerTestId)} timeout="auto" unmountOnExit>
-										{test.variations.map(variation => <ListItemButton  className="lvl-variation">
-											<ListItemText primary={variation} />
+										{test.variations.map((variation, variationIndex) => <ListItemButton onClick={() => props.selectVariation(customer.customer + '/' + test.test + '/' + variation)}  className="lvl-variation" key={customerTestId+variationIndex}>
+											<ListItemText primary={transformName(variation)} />
 										</ListItemButton>)}
 									</Collapse>
 								</>
