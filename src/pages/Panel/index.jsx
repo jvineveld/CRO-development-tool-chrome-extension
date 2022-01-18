@@ -3,8 +3,6 @@ import { render } from 'react-dom';
 
 import Panel from './Panel';
 import './index.scss';
-import { Provider } from 'react-redux'
-import store from './store'
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { blue } from '@mui/material/colors';
 
@@ -24,9 +22,7 @@ const theme = createTheme({
   
 
 render(<ThemeProvider theme={theme}>
-	<Provider store={store}>
-		<Panel />
-	</Provider>
+	<Panel />
 </ThemeProvider>, window.document.querySelector('#app-container'));
 
 if (module.hot) module.hot.accept();

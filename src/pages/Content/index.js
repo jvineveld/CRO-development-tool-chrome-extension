@@ -1,134 +1,163 @@
 /**
  * Here we inject the updated css and js in the webpage
- * 
- * depending on what active tests are stored in localstorage, 
+ *
+ * depending on what active tests are stored in localstorage,
  * it renders or doesn't render the recieved css / js updates
- * 
+ *
  * session storage is set from within the dev_tools panel
- * 
+ *
  * @author Jonas van Ineveld
  */
- class CRO_Tool_Inject{
-	constructor(){
-		try {
-			this.socket = io('http://localhost:6589',  { query: 'path='+document.location.href, reconnectionAttempts: 1, reconnection: false });
-		} catch (error) {
-			return;
-		}
-		this.activeTests = [];
-		this.subscribeToSocket();
+import { io } from 'socket.io-client';
 
-		this.listenToDevtoolsEvents();
+class CRO_Tool_Inject {
+  constructor() {
+    try {
+      const ENDPOINT = 'http://127.0.0.1:6589?path=contentscript'; //+ document.location.href;
+      this.socket = io(ENDPOINT);
+      this.socket.connect();
+    } catch (error) {
+      console.log('error!', error);
+      return;
+    }
+    this.activeTests = [];
+    this.subscribeToSocket();
 
-		let lastVal = JSON.parse(sessionStorage.getItem('active_test')),
-			hasActiveTests = lastVal ? lastVal : [] ;
+    this.listenToDevtoolsEvents();
 
-		for(let test of hasActiveTests){
-			this.activateTest(test)
-		}
-	}
+    let lastVal = JSON.parse(sessionStorage.getItem('active_test')),
+      hasActiveTests = lastVal ? lastVal : [];
 
-	listenToDevtoolsEvents(){
-		document.addEventListener('CRODevtools_ActivateTest', e => {
-			this.activateTest(e.detail)
-		}, false);
-		 
-		document.addEventListener('CRODevtools_DisableTest', e => {
-			this.disableTest(e.detail)
-		}, false);
-	}
+    for (let test of hasActiveTests) {
+      this.activateTest(test);
+    }
+  }
 
-	disableTest(test){
-		let indexToRemove = null;
-		this.activeTests.some((active, index) => {
-			if(active.customer===test.customer&&active.test===test.test&&active.variation===test.variation){
-				indexToRemove = index;
-				return true;
-			}
-			return false;
-		})
+  listenToDevtoolsEvents() {
+    document.addEventListener(
+      'CRODevtools_ActivateTest',
+      (e) => {
+        this.activateTest(e.detail);
+      },
+      false
+    );
 
-		if(indexToRemove!==null){
-			this.activeTests.splice(indexToRemove, 1);
-		}
-		sessionStorage.setItem('active_test', JSON.stringify(this.activeTests));
-		document.location.reload();
-	}
+    document.addEventListener(
+      'CRODevtools_DisableTest',
+      (e) => {
+        this.disableTest(e.detail);
+      },
+      false
+    );
+  }
 
-	activateTest(test){
-		if(this.isActiveTest(test)){
-			return;
-		}
+  disableTest(test) {
+    let indexToRemove = null;
+    this.activeTests.some((active, index) => {
+      if (
+        active.customer === test.customer &&
+        active.test === test.test &&
+        active.variation === test.variation
+      ) {
+        indexToRemove = index;
+        return true;
+      }
+      return false;
+    });
 
-		this.activeTests.push(test)
-		sessionStorage.setItem('active_test', JSON.stringify(this.activeTests));
+    if (indexToRemove !== null) {
+      this.activeTests.splice(indexToRemove, 1);
+    }
+    sessionStorage.setItem('active_test', JSON.stringify(this.activeTests));
+    document.location.reload();
+  }
 
-		this.socket.emit('subscribe_to_test', { test })
-	}
+  activateTest(test) {
+    if (this.isActiveTest(test)) {
+      return;
+    }
 
-	isActiveTest(test){
-		for(let active of this.activeTests){
-			if(active.customer===test.customer&&active.test===test.test&&active.variation===test.variation){
-				return true;
-			}
-		}
+    this.activeTests.push(test);
 
-		return false;
-	}
+    sessionStorage.setItem('active_test', JSON.stringify(this.activeTests));
 
-	subscribeToSocket(){
-		this.socket.on('initial_resources', resources => this.initialResources(resources));
-		this.socket.on('css_updated', resources => {
-			this.updateCss(resources.css, resources.test.test, resources.test.variation)
-		});
-		this.socket.on('js_updated', () => {
-			document.location.reload()
-		});
-	}
+    this.socket.emit('subscribe_to_test', { test });
+  }
 
-	initialResources(resources){
-		if(resources.css){
-			this.updateCss(resources.css, resources.test, resources.variation)
-		}
-		if(resources.js){
-			this.updateJs(resources.js, resources.test, resources.variation)
-		}
-	}
+  isActiveTest(test) {
+    for (let active of this.activeTests) {
+      if (
+        active.customer === test.customer &&
+        active.test === test.test &&
+        active.variation === test.variation
+      ) {
+        return true;
+      }
+    }
 
-	updateCss(cssString, test, variation){
-		let blockKey = 'cro-injected-style-'+test+'-'+variation,
-			currentStyleBlock = document.getElementById(blockKey);
+    return false;
+  }
 
-		if(currentStyleBlock){
-			currentStyleBlock.outerHTML = '<style id="'+blockKey+'">' + cssString + '</style>';
+  subscribeToSocket() {
+    this.socket.on('connect', () => {});
+    this.socket.on('initial_resources', (resources) =>
+      this.initialResources(resources)
+    );
+    this.socket.on('css_updated', (resources) => {
+      this.updateCss(
+        resources.css,
+        resources.test.test,
+        resources.test.variation
+      );
+    });
+    this.socket.on('js_updated', () => {
+      document.location.reload();
+    });
+  }
 
-			return;
-		}
+  initialResources(resources) {
+    if (resources.css) {
+      this.updateCss(resources.css, resources.test, resources.variation);
+    }
+    if (resources.js) {
+      this.updateJs(resources.js, resources.test, resources.variation);
+    }
+  }
 
-		let head = document.head,
-			style = document.createElement('style');
+  updateCss(cssString, test, variation) {
+    let blockKey = 'cro-injected-style-' + test + '-' + variation,
+      currentStyleBlock = document.getElementById(blockKey);
 
-		style.id = blockKey;
-		head.appendChild(style);
-		style.appendChild(document.createTextNode(cssString));
-	}
+    if (currentStyleBlock) {
+      currentStyleBlock.outerHTML =
+        '<style id="' + blockKey + '">' + cssString + '</style>';
 
-	updateJs(jsString, test, variation){
+      return;
+    }
 
-		let blockKey = 'cro-injected-script-'+test+'-'+variation,
-			currentScriptBlock = document.getElementById(blockKey);
+    let head = document.head,
+      style = document.createElement('style');
 
-		if(currentScriptBlock){
-			document.location.reload()
-		}
+    style.id = blockKey;
+    head.appendChild(style);
+    style.appendChild(document.createTextNode(cssString));
+  }
 
-		let head = document.head,
-			script = document.createElement('script');
+  updateJs(jsString, test, variation) {
+    let blockKey = 'cro-injected-script-' + test + '-' + variation,
+      currentScriptBlock = document.getElementById(blockKey);
 
-		script.id = blockKey;
-		head.appendChild(script);
-		script.appendChild(document.createTextNode(jsString));
-	}
+    if (currentScriptBlock) {
+      document.location.reload();
+    }
+
+    let head = document.head,
+      script = document.createElement('script');
+
+    script.id = blockKey;
+    head.appendChild(script);
+    script.appendChild(document.createTextNode(jsString));
+  }
 }
 
-document.croInject = new CRO_Tool_Inject();
+window.croInject = new CRO_Tool_Inject();
